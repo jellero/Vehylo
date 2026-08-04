@@ -9,6 +9,12 @@ Le sorgenti previste sono:
 - frame e segnali proprietari descritti da profili veicolo;
 - sorgente demo integrata per sviluppare la UI senza hardware.
 
+## Documentazione di prodotto
+
+- [Visione di prodotto, analisi di mercato e roadmap](docs/PRODUCT_VISION_AND_MARKET.md)
+
+Il documento strategico descrive bisogni degli utenti, posizionamento, moduli proposti, priorità, sicurezza, modello economico e roadmap fino alla versione 1.0. Le funzioni pianificate non devono essere considerate già implementate.
+
 ## Versione 0.3.0
 
 ### Telemetria estesa e dinamica
