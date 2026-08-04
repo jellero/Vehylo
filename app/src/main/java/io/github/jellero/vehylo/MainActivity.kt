@@ -21,6 +21,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             VehyloApp(
                 telemetry = viewModel.telemetry,
+                mappings = viewModel.mappings,
+                onSaveMapping = viewModel::saveMapping,
                 onRequestBluetoothPermissions = ::requestBluetoothPermissions,
             )
         }
