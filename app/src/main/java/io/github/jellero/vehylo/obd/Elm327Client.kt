@@ -15,6 +15,9 @@ class Elm327Client(
         return GenericObdParser.parse(pid, response)
     }
 
+    suspend fun supportedMode01Pids(): Set<Int> =
+        ObdCapabilityScanner(transport).scanMode01()
+
     suspend fun disconnect() {
         transport.disconnect()
     }

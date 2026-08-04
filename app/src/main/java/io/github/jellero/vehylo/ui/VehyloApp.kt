@@ -46,6 +46,7 @@ private enum class VehyloSection(val label: String, val marker: String) {
     DASHBOARD("Dashboard", "D"),
     MAPPING("Mapping", "M"),
     DIAGNOSTICS("Diagnostica", "X"),
+    FEATURES("Funzioni", "+"),
 }
 
 @Composable
@@ -91,6 +92,10 @@ fun VehyloApp(
                 VehyloSection.DIAGNOSTICS -> DiagnosticsOverviewScreen(
                     modifier = Modifier.padding(padding),
                 )
+
+                VehyloSection.FEATURES -> FeatureHubScreen(
+                    modifier = Modifier.padding(padding),
+                )
             }
         }
     }
@@ -104,13 +109,22 @@ private fun Dashboard(
 ) {
     val roll = values[TelemetryKey.ROLL]?.value ?: 0.0
     val pitch = values[TelemetryKey.PITCH]?.value ?: 0.0
-    val primaryKeys = listOf(
+    val preferredKeys = listOf(
         TelemetryKey.ENGINE_RPM,
         TelemetryKey.VEHICLE_SPEED,
         TelemetryKey.COOLANT_TEMPERATURE,
+        TelemetryKey.ENGINE_OIL_TEMPERATURE,
+        TelemetryKey.TRANSMISSION_OIL_TEMPERATURE,
+        TelemetryKey.ENGINE_LOAD,
         TelemetryKey.THROTTLE_POSITION,
+        TelemetryKey.INTAKE_MANIFOLD_PRESSURE,
+        TelemetryKey.FUEL_LEVEL,
         TelemetryKey.CONTROL_MODULE_VOLTAGE,
     )
+    val metricKeys = preferredKeys.filter(values::containsKey) +
+        values.keys
+            .filterNot { it in preferredKeys || it == TelemetryKey.ROLL || it == TelemetryKey.PITCH }
+            .sortedBy { it.label }
 
     LazyColumn(
         modifier = modifier
@@ -122,7 +136,7 @@ private fun Dashboard(
             Spacer(Modifier.height(8.dp))
             Text("Vehylo", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             Text(
-                "Telemetria veicolo · modalità demo",
+                "Telemetria veicolo · parametri standard e mapping personalizzati",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -130,7 +144,7 @@ private fun Dashboard(
         item {
             InclinometerCard(roll = roll, pitch = pitch)
         }
-        items(primaryKeys) { key ->
+        items(metricKeys, key = TelemetryKey::id) { key ->
             MetricCard(key = key, sample = values[key])
         }
         item {
@@ -168,7 +182,9 @@ private fun MetricCard(key: TelemetryKey, sample: TelemetrySample?) {
                 )
             }
             Text(
-                text = sample?.let { "${format(it.value)} ${key.unit}" } ?: "—",
+                text = sample?.let {
+                    if (key.unit.isBlank()) format(it.value) else "${format(it.value)} ${key.unit}"
+                } ?: "—",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )

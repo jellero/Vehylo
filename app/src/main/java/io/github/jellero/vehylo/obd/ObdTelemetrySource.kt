@@ -9,18 +9,28 @@ import kotlinx.coroutines.flow.flow
 
 class ObdTelemetrySource(
     private val client: Elm327Client,
-    private val pids: List<ObdPid> = listOf(
+    private val requestedPids: List<ObdPid> = listOf(
         ObdPid.EngineRpm,
         ObdPid.VehicleSpeed,
         ObdPid.CoolantTemperature,
+        ObdPid.EngineOilTemperature,
+        ObdPid.IntakeAirTemperature,
+        ObdPid.AmbientAirTemperature,
+        ObdPid.EngineLoad,
         ObdPid.ThrottlePosition,
+        ObdPid.IntakeManifoldPressure,
+        ObdPid.FuelPressure,
+        ObdPid.FuelLevel,
         ObdPid.ControlModuleVoltage,
     ),
 ) : TelemetrySource {
     private var running = false
+    private var activePids: List<ObdPid> = requestedPids
 
     override suspend fun connect() {
         client.connect()
+        val supported = runCatching { client.supportedMode01Pids() }.getOrDefault(emptySet())
+        activePids = requestedPids.filter { it.pid in supported }.ifEmpty { requestedPids }
         running = true
     }
 
@@ -31,7 +41,7 @@ class ObdTelemetrySource(
 
     override fun samples(): Flow<TelemetrySample> = flow {
         while (running) {
-            pids.forEach { pid ->
+            activePids.forEach { pid ->
                 runCatching { client.read(pid) }
                     .onSuccess { value ->
                         emit(
@@ -43,7 +53,7 @@ class ObdTelemetrySource(
                         )
                     }
             }
-            delay(100)
+            delay(250)
         }
     }
 }
