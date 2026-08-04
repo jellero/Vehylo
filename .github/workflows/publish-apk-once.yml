@@ -1,0 +1,49 @@
+name: Publish APK once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-apk-once.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download validated APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vehylo-debug-apk
+          path: downloaded-apk
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: jellero/Vehylo
+          run-id: 30895416743
+
+      - name: Commit APK to repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_path="$(find downloaded-apk -type f -name '*.apk' -print -quit)"
+          test -n "$apk_path"
+
+          mkdir -p artifacts
+          cp "$apk_path" artifacts/Vehylo-0.3.0-debug.apk
+          sha256sum artifacts/Vehylo-0.3.0-debug.apk > artifacts/Vehylo-0.3.0-debug.apk.sha256
+
+          rm -rf downloaded-apk
+          rm -f .github/workflows/publish-apk-once.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artifacts .github/workflows/publish-apk-once.yml
+          git commit -m "Add Vehylo 0.3.0 debug APK"
+          git push origin HEAD:main
