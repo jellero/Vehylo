@@ -18,12 +18,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -31,26 +36,62 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.jellero.vehylo.mapping.SignalMapping
 import io.github.jellero.vehylo.telemetry.TelemetryKey
 import io.github.jellero.vehylo.telemetry.TelemetrySample
 import java.util.Locale
 import kotlinx.coroutines.flow.StateFlow
 
+private enum class VehyloSection(val label: String, val marker: String) {
+    DASHBOARD("Dashboard", "D"),
+    MAPPING("Mapping", "M"),
+    DIAGNOSTICS("Diagnostica", "X"),
+}
+
 @Composable
 fun VehyloApp(
     telemetry: StateFlow<Map<TelemetryKey, TelemetrySample>>,
+    mappings: StateFlow<List<SignalMapping>>,
+    onSaveMapping: (SignalMapping) -> Unit,
     onRequestBluetoothPermissions: () -> Unit,
 ) {
     val values by telemetry.collectAsStateWithLifecycle()
+    val savedMappings by mappings.collectAsStateWithLifecycle()
+    var selectedSection by rememberSaveable { mutableStateOf(VehyloSection.DASHBOARD) }
     val colorScheme = darkColorScheme()
 
     MaterialTheme(colorScheme = colorScheme) {
-        Scaffold { padding ->
-            Dashboard(
-                values = values,
-                onRequestBluetoothPermissions = onRequestBluetoothPermissions,
-                modifier = Modifier.padding(padding),
-            )
+        Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    VehyloSection.entries.forEach { section ->
+                        NavigationBarItem(
+                            selected = section == selectedSection,
+                            onClick = { selectedSection = section },
+                            icon = { Text(section.marker, fontWeight = FontWeight.Bold) },
+                            label = { Text(section.label) },
+                        )
+                    }
+                }
+            }
+        ) { padding ->
+            when (selectedSection) {
+                VehyloSection.DASHBOARD -> Dashboard(
+                    values = values,
+                    onRequestBluetoothPermissions = onRequestBluetoothPermissions,
+                    modifier = Modifier.padding(padding),
+                )
+
+                VehyloSection.MAPPING -> MappingWizardScreen(
+                    savedMappings = savedMappings,
+                    onSaveMapping = onSaveMapping,
+                    modifier = Modifier.padding(padding),
+                )
+
+                VehyloSection.DIAGNOSTICS -> DiagnosticsOverviewScreen(
+                    modifier = Modifier.padding(padding),
+                )
+            }
         }
     }
 }
